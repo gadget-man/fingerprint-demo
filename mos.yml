@@ -1,0 +1,27 @@
+author: Pim van Pelt <pim@ipng.nl>
+description: A Mongoose OS Fingerprint demo
+version: 1.0
+platform: esp32
+
+libs_version: ${mos.version}
+modules_version: ${mos.version}
+mongoose_os_version: ${mos.version}
+
+tags:
+  - c
+
+# List of files / directories with C sources. No slashes at the end of dir names.
+sources:
+  - src
+
+includes:
+  - include
+
+config_schema:
+
+# List of libraries used by this app, in order of initialisation
+libs:
+  - origin: https://github.com/mongoose-os-libs/fingerprint
+
+# Used by the mos tool to catch mos binaries incompatible with this file format
+manifest_version: 2017-05-18
