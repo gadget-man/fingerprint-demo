@@ -143,7 +143,7 @@ static void timer_cb(void *arg) {
     return;
   }
 
-  LOG(LL_INFO, ("Fingerprint image taken"));
+  LOG(LL_INFO, ("Fingerprint image taken (%s mode)", s_mode==MODE_MATCH?"match":"enroll"));
   mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                             MGOS_FINGERPRINT_AURA_PURPLE, 2);
 
@@ -161,7 +161,7 @@ static void enroll_handler(int pin, void *arg) {
   struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
 
   if (s_mode == MODE_ENROLL) {
-    LOG(LL_INFO, ("Exiting enroll mode"));
+    LOG(LL_INFO, ("Entering match mode"));
     s_state = STATE_NONE;
     s_mode = MODE_MATCH;
     mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_OFF, 0xF0,
