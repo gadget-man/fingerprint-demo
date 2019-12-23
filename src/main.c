@@ -67,10 +67,10 @@ static void enroll_cb(struct mgos_fingerprint *finger) {
     case STATE_FIRST_IMAGE:
       if (MGOS_FINGERPRINT_OK !=
           (p = mgos_fingerprint_image_genchar(finger, 1))) {
-        LOG(LL_ERROR, ("Could not generate fingerprint in slot 1"));
+        LOG(LL_ERROR, ("Could not generate first image"));
         goto err;
       }
-      LOG(LL_INFO, ("Stored fingerprint in slot 1: Remove finger"));
+      LOG(LL_INFO, ("Stored first fingerprint: Remove finger"));
 
       while (p != MGOS_FINGERPRINT_NOFINGER) {
         p = mgos_fingerprint_image_get(finger);
@@ -87,10 +87,10 @@ static void enroll_cb(struct mgos_fingerprint *finger) {
       int16_t fid;
 
       if (MGOS_FINGERPRINT_OK != mgos_fingerprint_image_genchar(finger, 2)) {
-        LOG(LL_ERROR, ("Could not generate fingerprint in slot 2"));
+        LOG(LL_ERROR, ("Could not generate second fingerprint"));
         goto err;
       }
-      LOG(LL_INFO, ("Stored fingerprint in slot 2"));
+      LOG(LL_INFO, ("Stored second fingerprint"));
 
       if (MGOS_FINGERPRINT_OK != mgos_fingerprint_model_combine(finger)) {
         LOG(LL_ERROR, ("Could not combine fingerprints into a model"));
