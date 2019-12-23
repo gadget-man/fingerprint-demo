@@ -37,23 +37,23 @@ static void match_cb(struct mgos_fingerprint *finger) {
 
   uint16_t fid = -1, score = 0;
   p = mgos_fingerprint_database_search(finger, &fid, &score, 1);
-  switch(p) {
-  case MGOS_FINGERPRINT_OK:
-    LOG(LL_INFO, ("Fingerprint match: fid=%d score=%d", fid, score));
-    break;
-  case MGOS_FINGERPRINT_NOTFOUND:
-    LOG(LL_INFO, ("Fingerprint not found"));
-    break;
-  default:
-    LOG(LL_ERROR, ("Error database_search(): %d!", p));
+  switch (p) {
+    case MGOS_FINGERPRINT_OK:
+      LOG(LL_INFO, ("Fingerprint match: fid=%d score=%d", fid, score));
+      break;
+    case MGOS_FINGERPRINT_NOTFOUND:
+      LOG(LL_INFO, ("Fingerprint not found"));
+      break;
+    default:
+      LOG(LL_ERROR, ("Error database_search(): %d!", p));
   }
 
 out:
   mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0xA0,
-                                p == MGOS_FINGERPRINT_OK
-                                    ? MGOS_FINGERPRINT_AURA_BLUE
-                                    : MGOS_FINGERPRINT_AURA_RED,
-                                1);
+                            p == MGOS_FINGERPRINT_OK
+                                ? MGOS_FINGERPRINT_AURA_BLUE
+                                : MGOS_FINGERPRINT_AURA_RED,
+                            1);
   return;
 }
 
@@ -62,7 +62,7 @@ static void learn_cb(struct mgos_fingerprint *finger) {
 }
 
 static void timer_cb(void *arg) {
-  struct mgos_fingerprint *finger = (struct mgos_fingerprint *)arg;
+  struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
 
   int16_t p = mgos_fingerprint_image_get(finger);
   if (p == MGOS_FINGERPRINT_NOFINGER) {
@@ -73,18 +73,18 @@ static void timer_cb(void *arg) {
   }
 
   LOG(LL_INFO, ("Fingerprint image taken"));
-  mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08, MGOS_FINGERPRINT_AURA_PURPLE, 2);
+  mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
+                            MGOS_FINGERPRINT_AURA_PURPLE, 2);
 
-  switch(s_mode) {
-  case MODE_MATCH:
-    return match_cb(finger);
-    break;
-  case MODE_LEARN:
-    return learn_cb(finger);
-    break;
+  switch (s_mode) {
+    case MODE_MATCH:
+      return match_cb(finger);
+      break;
+    case MODE_LEARN:
+      return learn_cb(finger);
+      break;
   }
 }
-
 
 enum mgos_app_init_result mgos_app_init(void) {
   struct mgos_fingerprint *finger = NULL;
