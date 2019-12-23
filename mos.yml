@@ -18,6 +18,12 @@ includes:
   - include
 
 config_schema:
+  - ["app", "o", {title: "APP settings"}]
+  - ["app.enroll_gpio", "i", {title: "GPIO for Enroll button"}]
+  - ["app.enroll_gpio", 39]
+  - ["app.erase_gpio", "i", {title: "GPIO for Enroll button"}]
+  - ["app.erase_gpio", 37]
+
 
 # List of libraries used by this app, in order of initialisation
 libs:
