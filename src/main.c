@@ -54,10 +54,16 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                                 MGOS_FINGERPRINT_AURA_PURPLE, 2);
       break;
-    case MGOS_FINGERPRINT_EV_MATCH_OK:
+    case MGOS_FINGERPRINT_EV_MATCH_OK: {
+      uint32_t pack = *((uint32_t *) ev_data);
+      uint16_t finger_id = pack & 0xFFFF;
+      uint16_t score = pack >> 16;
+
+      LOG(LL_INFO, ("Matched finger ID %u with score %u", finger_id, score));
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0xF0,
                                 MGOS_FINGERPRINT_AURA_BLUE, 1);
       break;
+    }
     case MGOS_FINGERPRINT_EV_MATCH_ERROR:
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0xF0,
                                 MGOS_FINGERPRINT_AURA_RED, 1);
@@ -71,11 +77,14 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0x40,
                                 MGOS_FINGERPRINT_AURA_BLUE, 0);
       break;
-    case MGOS_FINGERPRINT_EV_ENROLL_OK:
+    case MGOS_FINGERPRINT_EV_ENROLL_OK: {
+      uint32_t finger_id = *((uint32_t *) ev_data);
+      LOG(LL_INFO, ("Stored model at finger ID %u", finger_id));
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                                 MGOS_FINGERPRINT_AURA_BLUE, 5);
       sleep(2);
       break;
+    }
     case MGOS_FINGERPRINT_EV_ENROLL_ERROR:
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                                 MGOS_FINGERPRINT_AURA_RED, 5);
