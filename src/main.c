@@ -67,6 +67,7 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
     case MGOS_FINGERPRINT_EV_MATCH_ERROR:
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0xF0,
                                 MGOS_FINGERPRINT_AURA_RED, 1);
+      LOG(LL_INFO, ("Fingerprint did not match"));
       break;
     case MGOS_FINGERPRINT_EV_STATE_MATCH:
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_OFF, 0xF0,
@@ -83,12 +84,15 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                                 MGOS_FINGERPRINT_AURA_BLUE, 5);
       sleep(2);
+      mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_ENROLL);
       break;
     }
     case MGOS_FINGERPRINT_EV_ENROLL_ERROR:
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x08,
                                 MGOS_FINGERPRINT_AURA_RED, 5);
+      LOG(LL_INFO, ("Fingerprint model not stored"));
       sleep(2);
+      mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_ENROLL);
       break;
     default:
       LOG(LL_WARN, ("Unknown event %d", ev));
