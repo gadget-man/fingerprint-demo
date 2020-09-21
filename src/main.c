@@ -17,9 +17,112 @@
 #include "mgos.h"
 #include "mgos_config.h"
 #include "mgos_fingerprint.h"
+#include "mgos_gpio.h"
+#include "mgos_timers.h"
 
-static void mode_handler(int pin, void *arg) {
-  struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
+struct mgos_fingerprint *finger = NULL;
+struct mgos_fingerprint_cfg cfg;
+
+
+static mgos_timer_id s_door_timer = MGOS_INVALID_TIMER_ID; // The var for door hold duration
+static mgos_timer_id s_hold_timer = MGOS_INVALID_TIMER_ID; // The var for long press detection
+static mgos_timer_id s_button_timer = MGOS_INVALID_TIMER_ID; // The var for long press detection
+
+static double startTime = 0; //Variable timer for measuring button press
+
+static void mode_handler(void *arg);
+static void erase_handler(void *arg);
+
+static void clear_led(void *arg) {
+  mgos_gpio_write(mgos_sys_config_get_app_Green_LED(), 0);
+  mgos_gpio_write(mgos_sys_config_get_app_Red_LED(), 0);
+  (void) arg;
+}
+
+static void GreenLED(bool level) {
+  mgos_gpio_write(mgos_sys_config_get_app_Red_LED(), false);
+  mgos_gpio_write(mgos_sys_config_get_app_Green_LED(), level);
+
+}
+
+static void RedLED(bool level) {
+  mgos_gpio_write(mgos_sys_config_get_app_Green_LED(), false);
+  mgos_gpio_write(mgos_sys_config_get_app_Red_LED(), level);
+  
+}
+
+static void OrangeLED(bool level) {
+  mgos_gpio_write(mgos_sys_config_get_app_Green_LED(), level);
+  mgos_gpio_write(mgos_sys_config_get_app_Red_LED(), level);
+
+}
+
+
+static void clear_door(void *arg) {
+  s_door_timer = MGOS_INVALID_TIMER_ID;
+  mgos_gpio_write(mgos_sys_config_get_app_door(), false);
+  (void) arg;
+}
+
+static void DoorAction() {
+  mgos_gpio_write(mgos_sys_config_get_app_door(), true);
+  s_door_timer = mgos_set_timer(500, 0, clear_door, NULL);
+}
+
+
+
+static void button_timer_cb(void *arg)
+{
+  (void)arg;
+  double duration = mgos_uptime() - startTime;
+  // LOG(LL_INFO, ("Button Timer Callback after %.2lf seconds", duration));
+
+  if (duration > 4 && duration < 8) {
+    OrangeLED(true);
+    s_button_timer = mgos_set_timer(mgos_sys_config_get_app_timeout()*1000, 0, clear_led, NULL);
+    LOG(LL_INFO, ("Need to enter mode handler"));
+    mode_handler(finger);
+  }
+
+  if (duration >8) {
+    RedLED(true);
+    // s_button_timer = mgos_set_timer(mgos_sys_config_get_app_timeout(), 0, clear_led, NULL);
+    LOG(LL_INFO, ("Need to enter clear handler"));
+    erase_handler(finger);
+  }
+
+}
+
+static void button_cb(int pin, void *arg)
+{
+  (void)arg;
+  int duration = 5000;
+
+  if (mgos_gpio_read(mgos_sys_config_get_app_button()) == false) {
+    LOG(LL_INFO, ("Button Pressed"));
+    GreenLED(true);
+    startTime = mgos_uptime();
+    s_hold_timer = mgos_set_timer(duration, MGOS_TIMER_REPEAT, button_timer_cb, arg);
+
+  } else { //Button released
+      double duration = mgos_uptime() - startTime;
+      LOG(LL_INFO, ("Button Released after %.2lf seconds", duration));
+      if (s_hold_timer != MGOS_INVALID_TIMER_ID) {
+        // LOG(LL_INFO, ("Clearing button timer"));
+        mgos_clear_timer(s_hold_timer);
+      }
+      if (duration < 2.0) {
+          mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_MATCH);
+          LOG(LL_INFO, ("Open Door"));
+          DoorAction();
+          GreenLED(false);
+
+      }
+  }
+}
+
+static void mode_handler(void *arg) {
+  // struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
   int mode;
   if (!finger) return;
 
@@ -27,14 +130,16 @@ static void mode_handler(int pin, void *arg) {
   if (mode == MGOS_FINGERPRINT_MODE_ENROLL) {
     LOG(LL_INFO, ("Entering match mode"));
     mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_MATCH);
+    mgos_set_timer(500, 0, clear_led, NULL);
     return;
   }
   LOG(LL_INFO, ("Entering enroll mode"));
   mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_ENROLL);
 }
 
-static void erase_handler(int pin, void *arg) {
-  struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
+static void erase_handler(void *arg) {
+  LOG(LL_INFO, ("Calling Erase Handler"));
+  // struct mgos_fingerprint *finger = (struct mgos_fingerprint *) arg;
 
   uint16_t num_models = 0;
   mgos_fingerprint_model_count(finger, &num_models);
@@ -43,6 +148,7 @@ static void erase_handler(int pin, void *arg) {
   mgos_fingerprint_database_erase(finger);
   mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_FLASHING, 0x40,
                             MGOS_FINGERPRINT_AURA_RED, 3);
+  mgos_set_timer(2000, 0, clear_led, NULL);
 }
 
 static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
@@ -62,6 +168,10 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
       LOG(LL_INFO, ("Matched finger ID %u with score %u", finger_id, score));
       mgos_fingerprint_led_aura(finger, MGOS_FINGERPRINT_AURA_BREATHING, 0xF0,
                                 MGOS_FINGERPRINT_AURA_BLUE, 1);
+      LOG(LL_INFO, ("Open Door"));
+      DoorAction();
+      GreenLED(true);
+      mgos_set_timer(2000, false, clear_led, NULL);
       break;
     }
     case MGOS_FINGERPRINT_EV_MATCH_ERROR:
@@ -85,6 +195,7 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
                                 MGOS_FINGERPRINT_AURA_BLUE, 5);
       sleep(2);
       mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_ENROLL);
+      mgos_set_timer(100, false, mode_handler, finger);
       break;
     }
     case MGOS_FINGERPRINT_EV_ENROLL_ERROR:
@@ -93,6 +204,8 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
       LOG(LL_INFO, ("Fingerprint model not stored"));
       sleep(2);
       mgos_fingerprint_svc_mode_set(finger, MGOS_FINGERPRINT_MODE_ENROLL);
+      mgos_set_timer(1000, false, mode_handler, finger);
+
       break;
     default:
       LOG(LL_WARN, ("Unknown event %d", ev));
@@ -102,34 +215,44 @@ static void mgos_fingerprint_handler(struct mgos_fingerprint *finger, int ev,
 }
 
 enum mgos_app_init_result mgos_app_init(void) {
-  struct mgos_fingerprint *finger = NULL;
-  struct mgos_fingerprint_cfg cfg;
+  
 
   mgos_fingerprint_config_set_defaults(&cfg);
   cfg.uart_no = 2;
   cfg.handler = mgos_fingerprint_handler;
+  cfg.enroll_timeout_secs = mgos_sys_config_get_app_timeout();
 
   if (NULL == (finger = mgos_fingerprint_create(&cfg))) {
     LOG(LL_ERROR, ("Did not find fingerprint sensor"));
     return false;
   }
 
+  mgos_gpio_set_mode(mgos_sys_config_get_app_Green_LED(), 1);
+  mgos_gpio_set_mode(mgos_sys_config_get_app_Red_LED(), 1);
+  mgos_gpio_set_mode(mgos_sys_config_get_app_door(), 1);
+  
+
+
   // Start service
   mgos_fingerprint_svc_init(finger, 250);
 
-  // Register enroll button
-  mgos_gpio_set_mode(mgos_sys_config_get_app_enroll_gpio(),
-                     MGOS_GPIO_MODE_INPUT);
-  mgos_gpio_set_button_handler(mgos_sys_config_get_app_enroll_gpio(),
-                               MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_POS, 50,
-                               mode_handler, finger);
+  // Register  button
 
-  // Register erase button
-  mgos_gpio_set_mode(mgos_sys_config_get_app_erase_gpio(),
-                     MGOS_GPIO_MODE_INPUT);
-  mgos_gpio_set_button_handler(mgos_sys_config_get_app_erase_gpio(),
-                               MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_POS, 50,
-                               erase_handler, finger);
+  mgos_gpio_set_mode(mgos_sys_config_get_app_button(), MGOS_GPIO_MODE_INPUT);
+  mgos_gpio_set_button_handler(mgos_sys_config_get_app_button(), MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_ANY, 50, button_cb, finger);
+
+  // mgos_gpio_set_mode(mgos_sys_config_get_app_button(),
+  //                    MGOS_GPIO_MODE_INPUT);
+  // mgos_gpio_set_button_handler(mgos_sys_config_get_app_button(),
+  //                              MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_POS, 50,
+  //                              mode_handler, finger);
+
+  // // Register erase button
+  // mgos_gpio_set_mode(mgos_sys_config_get_app_erase_gpio(),
+  //                    MGOS_GPIO_MODE_INPUT);
+  // mgos_gpio_set_button_handler(mgos_sys_config_get_app_erase_gpio(),
+  //                              MGOS_GPIO_PULL_UP, MGOS_GPIO_INT_EDGE_POS, 50,
+  //                              erase_handler, finger);
 
   return MGOS_APP_INIT_SUCCESS;
 }

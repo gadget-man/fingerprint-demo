@@ -19,15 +19,36 @@ includes:
 
 config_schema:
   - ["app", "o", {title: "APP settings"}]
-  - ["app.enroll_gpio", "i", {title: "GPIO for Enroll button"}]
-  - ["app.enroll_gpio", 39]
-  - ["app.erase_gpio", "i", {title: "GPIO for Enroll button"}]
-  - ["app.erase_gpio", 37]
+  - ["app.button", "i", {title: "GPIO for Enroll button"}]
+  - ["app.button", 27]
+  - ["app.door", "i", {title: "GPIO for Garage Door"}]
+  - ["app.door", 21]
+  - ["app.Green_LED", "i", {title: "GPIO for Green LED"}]
+  - ["app.Green_LED", 32]
+  - ["app.Red_LED", "i", {title: "GPIO for Red LED"}]
+  - ["app.Red_LED", 33]
+  - ["app.timeout", "i", {title: "Timeout For Enroll"}]
+  - ["app.timeout", 5]
+
+
 
 
 # List of libraries used by this app, in order of initialisation
 libs:
   - origin: https://github.com/mongoose-os-libs/fingerprint
+  - origin: https://github.com/mongoose-os-libs/core
+  - origin: https://github.com/mongoose-os-libs/dash
+  - origin: https://github.com/mongoose-os-libs/http-server
+  - origin: https://github.com/mongoose-os-libs/rpc-service-config
+  - origin: https://github.com/mongoose-os-libs/rpc-service-ota
+  - origin: https://github.com/mongoose-os-libs/rpc-service-fs
+  - origin: https://github.com/mongoose-os-libs/rpc-service-gpio
+  - origin: https://github.com/mongoose-os-libs/rpc-service-wifi
+  - origin: https://github.com/mongoose-os-libs/rpc-common
+  - origin: https://github.com/mongoose-os-libs/rpc-uart
+  - origin: https://github.com/mongoose-os-libs/rpc-mqtt
+  - origin: https://github.com/mongoose-os-libs/rpc-loopback
+  - origin: https://github.com/mongoose-os-libs/rpc-ws
   
 # Used by the mos tool to catch mos binaries incompatible with this file format
 manifest_version: 2017-05-18
